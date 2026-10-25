@@ -45,6 +45,15 @@ export const playersAPI = {
   getStats: (id) => api.get(`/players/${id}/stats`),
 };
 
+// Player totals are derived from player_match scorecards where available.
+export const playerStatisticsAPI = {
+  getAll: () => api.get('/player-statistics'),
+  getMatchRecords: () => api.get('/player-statistics/records'),
+  createMatchRecord: (data) => api.post('/player-statistics/records', data),
+  updateMatchRecord: (id, data) => api.put(`/player-statistics/records/${id}`, data),
+  deleteMatchRecord: (id) => api.delete(`/player-statistics/records/${id}`),
+};
+
 // 3. Matches API
 export const matchesAPI = {
   getAll: (params) => api.get('/matches', { params }),
@@ -151,6 +160,10 @@ export const reportsAPI = {
   // Aggregates
   getVenueStats:   () => api.get('/reports/venue-matches'),
   getSeasonSummary: () => api.get('/reports/season-summary'),
+};
+
+export const teamStatisticsAPI = {
+  getAll: (params) => api.get('/team-statistics', { params }),
 };
 
 export default api;

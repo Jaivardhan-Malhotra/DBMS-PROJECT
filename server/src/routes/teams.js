@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param } = require('express-validator');
 const teamsController = require('../controllers/teamsController');
-const { validate, paginate } = require('../middleware/validate');
+const { validate } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -29,18 +29,10 @@ const createTeamValidation = [
     .optional({ nullable: true })
     .isInt({ min: 1 })
     .withMessage('home_venue_id must be a positive integer'),
-  body('captain_id')
-    .optional({ nullable: true })
-    .isInt({ min: 1 })
-    .withMessage('captain_id must be a positive integer'),
   body('founded_year')
     .optional({ nullable: true })
     .isInt({ min: 1900, max: 2100 })
-    .withMessage('founded_year must be a valid year'),
-  body('titles_won')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('titles_won must be an integer >= 0')
+    .withMessage('founded_year must be a valid year')
 ];
 
 const updateTeamValidation = [
@@ -72,25 +64,16 @@ const updateTeamValidation = [
     .optional({ nullable: true })
     .isInt({ min: 1 })
     .withMessage('home_venue_id must be a positive integer'),
-  body('captain_id')
-    .optional({ nullable: true })
-    .isInt({ min: 1 })
-    .withMessage('captain_id must be a positive integer'),
   body('founded_year')
     .optional({ nullable: true })
     .isInt({ min: 1900, max: 2100 })
-    .withMessage('founded_year must be a valid year'),
-  body('titles_won')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('titles_won must be an integer >= 0')
+    .withMessage('founded_year must be a valid year')
 ];
 
 // Routes
-router.get('/', paginate, teamsController.getAllTeams);
+router.get('/', teamsController.getAllTeams);
 router.get('/:id', teamsController.getTeamById);
 router.get('/:id/players', teamsController.getTeamPlayers);
-router.get('/:id/matches', teamsController.getTeamMatches);
 router.post('/', createTeamValidation, validate, teamsController.createTeam);
 router.put('/:id', updateTeamValidation, validate, teamsController.updateTeam);
 router.delete('/:id', teamsController.deleteTeam);

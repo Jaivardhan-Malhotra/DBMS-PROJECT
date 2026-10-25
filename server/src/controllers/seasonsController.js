@@ -1,5 +1,4 @@
 const pool = require('../config/database');
-const { getPaginationMeta } = require('../middleware/validate');
 
 /**
  * Controller for Seasons operations
@@ -8,45 +7,16 @@ const { getPaginationMeta } = require('../middleware/validate');
 // GET /api/seasons - List all seasons with champion and runner-up details
 const getAllSeasons = async (req, res, next) => {
   try {
-    const page = req.pagination ? req.pagination.page : 1;
-    const limit = req.pagination ? req.pagination.limit : 10;
-    const offset = req.pagination ? req.pagination.offset : 0;
-
-    const countQuery = 'SELECT COUNT(*) AS total FROM seasons';
-    const [countRows] = await pool.query(countQuery);
-    const totalItems = countRows[0].total;
-
-    const query = `
-      SELECT 
-        s.season_id,
-        s.season_year,
-        s.start_date,
-        s.end_date,
-        s.host_country,
-        s.total_teams,
-        s.total_matches,
-        s.champion_team_id,
-        c.team_name AS champion_name,
-        c.short_name AS champion_short,
-        s.runner_up_team_id,
-        r.team_name AS runner_up_name,
-        r.short_name AS runner_up_short,
-        (SELECT COUNT(*) FROM matches m WHERE m.season_id = s.season_id) AS matches_scheduled,
-        (SELECT COUNT(*) FROM matches m WHERE m.season_id = s.season_id AND m.status = 'Completed') AS matches_completed
-      FROM seasons s
-      LEFT JOIN teams c ON s.champion_team_id = c.team_id
-      LEFT JOIN teams r ON s.runner_up_team_id = r.team_id
-      ORDER BY s.season_year DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    const [seasons] = await pool.query(query, [limit, offset]);
+    const [seasons] = await pool.query(`
+      SELECT season_id, season_year
+      FROM seasons
+      ORDER BY season_year DESC
+    `);
 
     res.status(200).json({
       success: true,
-      message: 'Seasons retrieved successfully',
-      data: seasons,
-      pagination: getPaginationMeta(totalItems, page, limit)
+      message: 'Available seasons retrieved successfully',
+      data: seasons
     });
   } catch (error) {
     next(error);

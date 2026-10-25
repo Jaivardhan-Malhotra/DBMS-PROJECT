@@ -7,9 +7,6 @@ import {
   Eye,
   Calendar,
   MapPin,
-  Trophy,
-  Activity,
-  UserCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -17,7 +14,6 @@ import {
   seasonsAPI,
   venuesAPI,
   teamsAPI,
-  playersAPI,
 } from '../services/api';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -35,12 +31,7 @@ const initialMatchForm = {
   team2_id: '',
   match_date: '',
   match_time: '19:30',
-  match_type: 'League',
   status: 'Scheduled',
-  winner_id: '',
-  win_margin: '',
-  win_type: 'Runs',
-  player_of_match: '',
 };
 
 const Matches = () => {
@@ -48,7 +39,6 @@ const Matches = () => {
   const [seasons, setSeasons] = useState([]);
   const [venues, setVenues] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filters & Pagination
@@ -64,9 +54,6 @@ const Matches = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
-  const [matchInnings, setMatchInnings] = useState([]);
-  const [matchUmpires, setMatchUmpires] = useState([]);
-  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState(initialMatchForm);
@@ -76,30 +63,16 @@ const Matches = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [matchesRes, seasonsRes, venuesRes, teamsRes, playersRes] =
-        await Promise.allSettled([
-          matchesAPI.getAll(),
-          seasonsAPI.getAll(),
-          venuesAPI.getAll(),
-          teamsAPI.getAll(),
-          playersAPI.getAll(),
-        ]);
-
-      if (matchesRes.status === 'fulfilled' && matchesRes.value?.data) {
-        setMatches(matchesRes.value.data.data || matchesRes.value.data || []);
-      }
-      if (seasonsRes.status === 'fulfilled' && seasonsRes.value?.data) {
-        setSeasons(seasonsRes.value.data.data || seasonsRes.value.data || []);
-      }
-      if (venuesRes.status === 'fulfilled' && venuesRes.value?.data) {
-        setVenues(venuesRes.value.data.data || venuesRes.value.data || []);
-      }
-      if (teamsRes.status === 'fulfilled' && teamsRes.value?.data) {
-        setTeams(teamsRes.value.data.data || teamsRes.value.data || []);
-      }
-      if (playersRes.status === 'fulfilled' && playersRes.value?.data) {
-        setPlayers(playersRes.value.data.data || playersRes.value.data || []);
-      }
+      const [matchesRes, seasonsRes, venuesRes, teamsRes] = await Promise.all([
+        matchesAPI.getAll(),
+        seasonsAPI.getAll(),
+        venuesAPI.getAll(),
+        teamsAPI.getAll(),
+      ]);
+      setMatches(matchesRes.data.data || []);
+      setSeasons(seasonsRes.data.data || []);
+      setVenues(venuesRes.data.data || []);
+      setTeams(teamsRes.data.data || []);
     } catch (error) {
       toast.error('Failed to load match fixtures');
     } finally {
@@ -135,42 +108,15 @@ const Matches = () => {
       team2_id: match.team2_id || '',
       match_date: match.match_date ? match.match_date.split('T')[0] : '',
       match_time: match.match_time ? match.match_time.substring(0, 5) : '19:30',
-      match_type: match.match_type || 'League',
       status: match.status || 'Scheduled',
-      winner_id: match.winner_id || '',
-      win_margin: match.win_margin ?? '',
-      win_type: match.win_type || 'Runs',
-      player_of_match: match.player_of_match || '',
     });
     setFormErrors({});
     setIsFormOpen(true);
   };
 
-  const handleOpenView = async (match) => {
+  const handleOpenView = (match) => {
     setSelectedMatch(match);
     setIsViewOpen(true);
-    setLoadingDetails(true);
-    try {
-      const [inningsRes, umpiresRes] = await Promise.allSettled([
-        matchesAPI.getInnings(match.match_id),
-        matchesAPI.getUmpires(match.match_id),
-      ]);
-      if (inningsRes.status === 'fulfilled' && inningsRes.value?.data) {
-        setMatchInnings(inningsRes.value.data.data || inningsRes.value.data || []);
-      } else {
-        setMatchInnings([]);
-      }
-      if (umpiresRes.status === 'fulfilled' && umpiresRes.value?.data) {
-        setMatchUmpires(umpiresRes.value.data.data || umpiresRes.value.data || []);
-      } else {
-        setMatchUmpires([]);
-      }
-    } catch (err) {
-      setMatchInnings([]);
-      setMatchUmpires([]);
-    } finally {
-      setLoadingDetails(false);
-    }
   };
 
   const handleOpenDelete = (match) => {
@@ -188,17 +134,7 @@ const Matches = () => {
       errors.team2_id = 'Team 1 and Team 2 must be different franchises';
     }
     if (!formData.match_date) errors.match_date = 'Match date is required';
-    if (!formData.match_type) errors.match_type = 'Match type is required';
     if (!formData.status) errors.status = 'Match status is required';
-
-    if (formData.status === 'Completed' && formData.winner_id) {
-      if (
-        formData.winner_id !== String(formData.team1_id) &&
-        formData.winner_id !== String(formData.team2_id)
-      ) {
-        errors.winner_id = 'Winner must be either Team 1 or Team 2';
-      }
-    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -217,12 +153,7 @@ const Matches = () => {
         team2_id: Number(formData.team2_id),
         match_date: formData.match_date,
         match_time: formData.match_time ? `${formData.match_time}:00` : null,
-        match_type: formData.match_type,
         status: formData.status,
-        winner_id: formData.status === 'Completed' && formData.winner_id ? Number(formData.winner_id) : null,
-        win_margin: formData.status === 'Completed' && formData.win_margin !== '' ? Number(formData.win_margin) : null,
-        win_type: formData.status === 'Completed' ? formData.win_type : null,
-        player_of_match: formData.status === 'Completed' && formData.player_of_match ? Number(formData.player_of_match) : null,
       };
 
       if (selectedMatch) {
@@ -263,8 +194,7 @@ const Matches = () => {
       match.team2_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       match.team1_short?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       match.team2_short?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      match.venue_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      match.match_type?.toLowerCase().includes(searchTerm.toLowerCase());
+      match.venue_name?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesSeason = seasonFilter ? String(match.season_id) === String(seasonFilter) : true;
     const matchesStatus = statusFilter ? match.status === statusFilter : true;
@@ -297,19 +227,14 @@ const Matches = () => {
     }
   };
 
-  // Selected teams for winner dropdown options
-  const eligibleWinners = teams.filter(
-    (t) => String(t.team_id) === String(formData.team1_id) || String(t.team_id) === String(formData.team2_id)
-  );
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Match Fixtures & Results</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Match Schedule</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Schedule fixtures, assign match venues, score matches, and record official results.
+            Add, view, update, and remove IPL match fixtures.
           </p>
         </div>
         <button type="button" className="btn btn-primary" onClick={handleOpenAdd}>
@@ -325,7 +250,7 @@ const Matches = () => {
           setSearchTerm(val);
           setCurrentPage(1);
         }}
-        placeholder="Search matches by teams, venue, stage..."
+        placeholder="Search matches by teams or venue..."
         filters={[
           {
             key: 'season',
@@ -378,8 +303,6 @@ const Matches = () => {
             const team1 = teams.find((t) => t.team_id === match.team1_id);
             const team2 = teams.find((t) => t.team_id === match.team2_id);
             const venue = venues.find((v) => v.venue_id === match.venue_id);
-            const winner = teams.find((t) => t.team_id === match.winner_id);
-
             const team1Name = match.team1_short || team1?.short_name || match.team1_name || 'Team 1';
             const team2Name = match.team2_short || team2?.short_name || match.team2_name || 'Team 2';
             const venueTitle = match.venue_name || venue?.venue_name || 'Venue TBA';
@@ -394,7 +317,6 @@ const Matches = () => {
                     {match.match_time && <span>• {match.match_time.substring(0, 5)}</span>}
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <Badge variant="purple" label={match.match_type || 'League'} />
                     <Badge variant={getStatusBadgeVariant(match.status)} label={match.status} />
                   </div>
                 </div>
@@ -433,12 +355,6 @@ const Matches = () => {
                     <span>{venueTitle} {venueCity ? `(${venueCity})` : ''}</span>
                   </div>
 
-                  {match.status === 'Completed' && winner && (
-                    <div style={{ fontWeight: 600, color: 'var(--success)' }}>
-                      🏆 {winner.short_name || winner.team_name} Won
-                      {match.win_margin ? ` (${match.win_margin} ${match.win_type || 'Runs'})` : ''}
-                    </div>
-                  )}
                 </div>
 
                 <div
@@ -458,7 +374,7 @@ const Matches = () => {
                       type="button"
                       className="btn-icon primary"
                       onClick={() => handleOpenView(match)}
-                      title="View Match Details & Innings"
+                      title="View Match Schedule"
                     >
                       <Eye size={16} />
                     </button>
@@ -583,19 +499,6 @@ const Matches = () => {
           </div>
 
           <div className="form-row">
-            <FormField label="Match Type / Stage" required>
-              <select
-                className="form-control"
-                value={formData.match_type}
-                onChange={(e) => setFormData({ ...formData, match_type: e.target.value })}
-              >
-                <option value="League">League Match</option>
-                <option value="Qualifier">Qualifier</option>
-                <option value="Eliminator">Eliminator</option>
-                <option value="Final">Grand Final</option>
-                <option value="Super Over">Super Over</option>
-              </select>
-            </FormField>
             <FormField label="Status" required>
               <select
                 className="form-control"
@@ -610,79 +513,6 @@ const Matches = () => {
               </select>
             </FormField>
           </div>
-
-          {/* Conditional Result Section if Completed */}
-          {formData.status === 'Completed' && (
-            <div
-              style={{
-                marginTop: '1rem',
-                padding: '1.25rem',
-                backgroundColor: 'rgba(34, 197, 94, 0.05)',
-                border: '1px solid rgba(34, 197, 94, 0.25)',
-                borderRadius: 'var(--radius-md)',
-              }}
-            >
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--success)', marginBottom: '1rem' }}>
-                Official Match Outcome
-              </h4>
-
-              <div className="form-row">
-                <FormField label="Winner Franchise" error={formErrors.winner_id}>
-                  <select
-                    className="form-control"
-                    value={formData.winner_id}
-                    onChange={(e) => setFormData({ ...formData, winner_id: e.target.value })}
-                  >
-                    <option value="">Select Winner</option>
-                    {eligibleWinners.map((t) => (
-                      <option key={t.team_id} value={t.team_id}>
-                        {t.team_name} ({t.short_name})
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
-                <FormField label="Win Type">
-                  <select
-                    className="form-control"
-                    value={formData.win_type}
-                    onChange={(e) => setFormData({ ...formData, win_type: e.target.value })}
-                  >
-                    <option value="Runs">Runs</option>
-                    <option value="Wickets">Wickets</option>
-                    <option value="Super Over">Super Over</option>
-                    <option value="No Result">No Result</option>
-                  </select>
-                </FormField>
-              </div>
-
-              <div className="form-row">
-                <FormField label="Win Margin (e.g. 15 runs, 6 wkts)">
-                  <input
-                    type="number"
-                    min="0"
-                    className="form-control"
-                    placeholder="e.g. 24"
-                    value={formData.win_margin}
-                    onChange={(e) => setFormData({ ...formData, win_margin: e.target.value })}
-                  />
-                </FormField>
-                <FormField label="Player of the Match">
-                  <select
-                    className="form-control"
-                    value={formData.player_of_match}
-                    onChange={(e) => setFormData({ ...formData, player_of_match: e.target.value })}
-                  >
-                    <option value="">Select Player of Match</option>
-                    {players.map((p) => (
-                      <option key={p.player_id} value={p.player_id}>
-                        {p.player_name} ({p.team_name || 'Free Agent'})
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
-              </div>
-            </div>
-          )}
 
           <div className="modal-footer" style={{ padding: '1rem 0 0', marginTop: '1rem' }}>
             <button
@@ -700,16 +530,15 @@ const Matches = () => {
         </form>
       </Modal>
 
-      {/* View Match Details & Innings Modal */}
+      {/* Match schedule details */}
       <Modal
         isOpen={isViewOpen}
         onClose={() => setIsViewOpen(false)}
-        title={selectedMatch ? `Match #${selectedMatch.match_id} Detailed Scorecard` : 'Match Details'}
-        size="lg"
+        title={selectedMatch ? `Match #${selectedMatch.match_id}` : 'Match Details'}
+        size="md"
       >
         {selectedMatch && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Summary Banner */}
             <div
               style={{
                 padding: '1.25rem',
@@ -723,7 +552,8 @@ const Matches = () => {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  {new Date(selectedMatch.match_date).toLocaleDateString()} • {selectedMatch.match_type}
+                  {new Date(selectedMatch.match_date).toLocaleDateString()}
+                  {selectedMatch.match_time && ` • ${selectedMatch.match_time.substring(0, 5)}`}
                 </span>
                 <Badge variant={getStatusBadgeVariant(selectedMatch.status)} label={selectedMatch.status} />
               </div>
@@ -735,91 +565,6 @@ const Matches = () => {
               <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 📍 {selectedMatch.venue_name || 'Venue TBA'} {selectedMatch.venue_city ? `(${selectedMatch.venue_city})` : ''}
               </div>
-
-              {selectedMatch.winner_name && (
-                <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: '0.95rem', marginTop: '4px' }}>
-                  🏆 Winner: {selectedMatch.winner_name}
-                  {selectedMatch.win_margin ? ` by ${selectedMatch.win_margin} ${selectedMatch.win_type || 'Runs'}` : ''}
-                </div>
-              )}
-            </div>
-
-            {/* Innings section */}
-            <div>
-              <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Activity size={18} color="var(--accent-primary)" />
-                Innings Scores
-              </h4>
-
-              {loadingDetails ? (
-                <LoadingSpinner message="Loading innings scores..." />
-              ) : matchInnings.length === 0 ? (
-                <EmptyState message="No innings recorded yet for this fixture." icon={Activity} />
-              ) : (
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Innings</th>
-                        <th>Batting Team</th>
-                        <th>Bowling Team</th>
-                        <th>Score</th>
-                        <th>Overs</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {matchInnings.map((inn) => (
-                        <tr key={inn.innings_id || inn.innings_no}>
-                          <td>#{inn.innings_no}</td>
-                          <td className="text-primary">{inn.batting_team_name || `Team ${inn.batting_team_id}`}</td>
-                          <td>{inn.bowling_team_name || `Team ${inn.bowling_team_id}`}</td>
-                          <td style={{ fontWeight: 700, color: 'var(--accent-primary)' }}>
-                            {inn.total_runs}/{inn.total_wickets}
-                          </td>
-                          <td>{inn.total_overs} ov</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Umpires section */}
-            <div>
-              <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UserCheck size={18} color="var(--accent-secondary)" />
-                Assigned Match Officials
-              </h4>
-
-              {loadingDetails ? (
-                <LoadingSpinner message="Loading match officials..." />
-              ) : matchUmpires.length === 0 ? (
-                <EmptyState message="No match umpires assigned to this fixture." icon={UserCheck} />
-              ) : (
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Official Name</th>
-                        <th>Officiating Role</th>
-                        <th>Nationality</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {matchUmpires.map((ump, idx) => (
-                        <tr key={ump.umpire_id || idx}>
-                          <td className="text-primary">{ump.umpire_name}</td>
-                          <td>
-                            <Badge variant="info" label={ump.role || 'On-Field'} />
-                          </td>
-                          <td>{ump.nationality}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -831,7 +576,7 @@ const Matches = () => {
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteMatch}
         title="Delete Match Fixture"
-        message="Are you sure you want to delete this match fixture? All associated innings and performance records will also be permanently removed."
+        message="Are you sure you want to delete this match fixture? Its related player match records will also be removed."
         loading={submitting}
       />
     </div>

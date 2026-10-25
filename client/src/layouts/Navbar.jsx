@@ -4,18 +4,11 @@ import { RefreshCw, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const routeTitleMap = {
-  '/': 'Dashboard Overview',
   '/teams': 'Teams Management',
-  '/players': 'Players Roster & Stats',
-  '/matches': 'Match Fixtures & Results',
-  '/seasons': 'Seasons Archive',
-  '/venues': 'Stadiums & Venues',
-  '/umpires': 'Match Officials & Umpires',
-  '/sponsors': 'Sponsors & Brand Partnerships',
-  '/awards': 'Awards & Honors',
-  '/innings': 'Innings Scorecards',
-  '/owners': 'Franchise Owners',
-  '/reports': 'Analytics & Performance Reports',
+  '/players': 'Players in Teams',
+  '/matches': 'Match Schedule',
+  '/player-statistics': 'Player Statistics',
+  '/team-statistics': 'Team Statistics',
 };
 
 const Navbar = () => {
@@ -36,7 +29,9 @@ const Navbar = () => {
           <span>IPL System</span>
           <ChevronRight size={14} />
           <span style={{ color: 'var(--text-secondary)' }}>
-            {currentPath === '/' ? 'Dashboard' : currentPath.substring(1).charAt(0).toUpperCase() + currentPath.slice(2)}
+            {currentPath.substring(1).split('-').map((part) => (
+              part.charAt(0).toUpperCase() + part.slice(1)
+            )).join(' ')}
           </span>
         </div>
       </div>

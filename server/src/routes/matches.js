@@ -1,14 +1,11 @@
 const express = require('express');
 const { body, param } = require('express-validator');
 const matchesController = require('../controllers/matchesController');
-const { validate, paginate } = require('../middleware/validate');
+const { validate } = require('../middleware/validate');
 
 const router = express.Router();
 
-const VALID_MATCH_TYPES = ['League', 'Qualifier', 'Eliminator', 'Final', 'Super Over'];
 const VALID_MATCH_STATUS = ['Scheduled', 'Live', 'Completed', 'Cancelled', 'No Result'];
-const VALID_WIN_TYPES = ['Runs', 'Wickets', 'Super Over', 'No Result'];
-const VALID_TOSS_DECISIONS = ['Bat', 'Bowl'];
 
 // Validation chains
 const createMatchValidation = [
@@ -43,51 +40,25 @@ const createMatchValidation = [
     .withMessage('match_date is required')
     .isISO8601()
     .withMessage('match_date must be a valid date in YYYY-MM-DD format'),
-  body('match_type')
-    .optional()
-    .isIn(VALID_MATCH_TYPES)
-    .withMessage(`match_type must be one of: ${VALID_MATCH_TYPES.join(', ')}`),
   body('status')
     .optional()
     .isIn(VALID_MATCH_STATUS)
-    .withMessage(`status must be one of: ${VALID_MATCH_STATUS.join(', ')}`),
-  body('toss_decision')
-    .optional({ nullable: true })
-    .isIn(VALID_TOSS_DECISIONS)
-    .withMessage(`toss_decision must be one of: ${VALID_TOSS_DECISIONS.join(', ')}`),
-  body('win_type')
-    .optional({ nullable: true })
-    .isIn(VALID_WIN_TYPES)
-    .withMessage(`win_type must be one of: ${VALID_WIN_TYPES.join(', ')}`)
+    .withMessage(`status must be one of: ${VALID_MATCH_STATUS.join(', ')}`)
 ];
 
 const updateMatchValidation = [
   param('id')
     .isInt({ min: 1 })
     .withMessage('Invalid match ID parameter'),
-  body('match_type')
-    .optional()
-    .isIn(VALID_MATCH_TYPES)
-    .withMessage(`match_type must be one of: ${VALID_MATCH_TYPES.join(', ')}`),
   body('status')
     .optional()
     .isIn(VALID_MATCH_STATUS)
-    .withMessage(`status must be one of: ${VALID_MATCH_STATUS.join(', ')}`),
-  body('toss_decision')
-    .optional({ nullable: true })
-    .isIn(VALID_TOSS_DECISIONS)
-    .withMessage(`toss_decision must be one of: ${VALID_TOSS_DECISIONS.join(', ')}`),
-  body('win_type')
-    .optional({ nullable: true })
-    .isIn(VALID_WIN_TYPES)
-    .withMessage(`win_type must be one of: ${VALID_WIN_TYPES.join(', ')}`)
+    .withMessage(`status must be one of: ${VALID_MATCH_STATUS.join(', ')}`)
 ];
 
 // Routes
-router.get('/', paginate, matchesController.getAllMatches);
+router.get('/', matchesController.getAllMatches);
 router.get('/:id', matchesController.getMatchById);
-router.get('/:id/innings', matchesController.getMatchInnings);
-router.get('/:id/umpires', matchesController.getMatchUmpires);
 router.post('/', createMatchValidation, validate, matchesController.createMatch);
 router.put('/:id', updateMatchValidation, validate, matchesController.updateMatch);
 router.delete('/:id', matchesController.deleteMatch);

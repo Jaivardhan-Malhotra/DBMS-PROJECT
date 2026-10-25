@@ -1,5 +1,4 @@
 const pool = require('../config/database');
-const { getPaginationMeta } = require('../middleware/validate');
 
 /**
  * Controller for Venues operations
@@ -8,52 +7,16 @@ const { getPaginationMeta } = require('../middleware/validate');
 // GET /api/venues - List all venues with match count, search, and pagination
 const getAllVenues = async (req, res, next) => {
   try {
-    const page = req.pagination ? req.pagination.page : 1;
-    const limit = req.pagination ? req.pagination.limit : 10;
-    const offset = req.pagination ? req.pagination.offset : 0;
-    const search = req.query.search ? `%${req.query.search.trim()}%` : null;
-
-    let countQuery = 'SELECT COUNT(*) AS total FROM venues v';
-    let dataQuery = `
-      SELECT 
-        v.venue_id,
-        v.venue_name,
-        v.city,
-        v.country,
-        v.capacity,
-        v.pitch_type,
-        v.established_year,
-        COUNT(m.match_id) AS total_matches,
-        (SELECT t.team_name FROM teams t WHERE t.home_venue_id = v.venue_id LIMIT 1) AS home_team_name,
-        (SELECT t.short_name FROM teams t WHERE t.home_venue_id = v.venue_id LIMIT 1) AS home_team_short
-      FROM venues v
-      LEFT JOIN matches m ON v.venue_id = m.venue_id
-    `;
-
-    const queryParams = [];
-    const countParams = [];
-
-    if (search) {
-      const searchClause = ' WHERE (v.venue_name LIKE ? OR v.city LIKE ? OR v.country LIKE ?)';
-      countQuery += searchClause;
-      dataQuery += searchClause;
-      countParams.push(search, search, search);
-      queryParams.push(search, search, search);
-    }
-
-    dataQuery += ' GROUP BY v.venue_id ORDER BY total_matches DESC, v.venue_name ASC LIMIT ? OFFSET ?';
-    queryParams.push(limit, offset);
-
-    const [countRows] = await pool.query(countQuery, countParams);
-    const totalItems = countRows[0].total;
-
-    const [venues] = await pool.query(dataQuery, queryParams);
+    const [venues] = await pool.query(`
+      SELECT venue_id, venue_name, city
+      FROM venues
+      ORDER BY venue_name
+    `);
 
     res.status(200).json({
       success: true,
-      message: 'Venues retrieved successfully',
-      data: venues,
-      pagination: getPaginationMeta(totalItems, page, limit)
+      message: 'Available venues retrieved successfully',
+      data: venues
     });
   } catch (error) {
     next(error);

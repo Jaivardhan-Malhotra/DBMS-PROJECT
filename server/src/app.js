@@ -32,21 +32,14 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/api', (req, res) => {
   res.status(200).json({
     success: true,
-    message: '🏏 IPL Management System REST API is running',
+    message: 'IPL Management System API is running',
     version: '1.0.0',
     endpoints: {
       teams: '/api/teams',
       players: '/api/players',
       matches: '/api/matches',
-      seasons: '/api/seasons',
-      venues: '/api/venues',
-      umpires: '/api/umpires',
-      sponsors: '/api/sponsors',
-      awards: '/api/awards',
-      innings: '/api/innings',
-      owners: '/api/owners',
-      dashboard: '/api/dashboard',
-      reports: '/api/reports'
+      playerStatistics: '/api/player-statistics',
+      teamStatistics: '/api/team-statistics'
     }
   });
 });

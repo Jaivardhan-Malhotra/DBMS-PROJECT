@@ -1,19 +1,14 @@
 const pool = require('../config/database');
-const { getPaginationMeta } = require('../middleware/validate');
 
 /**
  * Controller for Teams operations
  */
 
-// GET /api/teams - List all teams with venues, captains, search, and pagination
+// GET /api/teams - List teams with their home venues
 const getAllTeams = async (req, res, next) => {
   try {
-    const page = req.pagination ? req.pagination.page : 1;
-    const limit = req.pagination ? req.pagination.limit : 10;
-    const offset = req.pagination ? req.pagination.offset : 0;
     const search = req.query.search ? `%${req.query.search.trim()}%` : null;
 
-    let countQuery = 'SELECT COUNT(*) AS total FROM teams t';
     let dataQuery = `
       SELECT 
         t.team_id,
@@ -23,72 +18,53 @@ const getAllTeams = async (req, res, next) => {
         t.coach,
         t.jersey_color,
         t.founded_year,
-        t.titles_won,
         t.home_venue_id,
         v.venue_name AS home_venue_name,
-        v.city AS home_venue_city,
-        t.captain_id,
-        p.player_name AS captain_name,
-        (SELECT COUNT(*) FROM players pl WHERE pl.team_id = t.team_id) AS total_players,
-        (SELECT COUNT(*) FROM matches m WHERE m.winner_id = t.team_id AND m.status = 'Completed') AS total_wins
+        v.city AS home_venue_city
       FROM teams t
       LEFT JOIN venues v ON t.home_venue_id = v.venue_id
-      LEFT JOIN players p ON t.captain_id = p.player_id
     `;
 
     const queryParams = [];
-    const countParams = [];
-
     if (search) {
       const searchClause = ' WHERE (t.team_name LIKE ? OR t.short_name LIKE ? OR t.city LIKE ?)';
-      countQuery += searchClause;
       dataQuery += searchClause;
-      countParams.push(search, search, search);
       queryParams.push(search, search, search);
     }
 
-    dataQuery += ' ORDER BY t.titles_won DESC, t.team_name ASC LIMIT ? OFFSET ?';
-    queryParams.push(limit, offset);
-
-    const [countRows] = await pool.query(countQuery, countParams);
-    const totalItems = countRows[0].total;
+    dataQuery += ' ORDER BY t.team_name ASC';
 
     const [teams] = await pool.query(dataQuery, queryParams);
 
     res.status(200).json({
       success: true,
       message: 'Teams fetched successfully',
-      data: teams,
-      pagination: getPaginationMeta(totalItems, page, limit)
+      data: teams
     });
   } catch (error) {
     next(error);
   }
 };
 
-// GET /api/teams/:id - Get single team by ID with captain, venue, and statistics
+// GET /api/teams/:id - Get a team and its home venue
 const getTeamById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const query = `
       SELECT 
-        t.*,
+        t.team_id,
+        t.team_name,
+        t.short_name,
+        t.city,
+        t.coach,
+        t.jersey_color,
+        t.founded_year,
+        t.home_venue_id,
         v.venue_name AS home_venue_name,
-        v.city AS home_venue_city,
-        v.capacity AS home_venue_capacity,
-        p.player_name AS captain_name,
-        p.role AS captain_role,
-        p.jersey_no AS captain_jersey_no,
-        o.owner_name,
-        o.net_worth AS owner_net_worth,
-        (SELECT COUNT(*) FROM players pl WHERE pl.team_id = t.team_id) AS total_players,
-        (SELECT COUNT(*) FROM matches m WHERE (m.team1_id = t.team_id OR m.team2_id = t.team_id)) AS total_matches_played,
-        (SELECT COUNT(*) FROM matches m WHERE m.winner_id = t.team_id AND m.status = 'Completed') AS total_wins
+        v.city AS home_venue_city
       FROM teams t
       LEFT JOIN venues v ON t.home_venue_id = v.venue_id
-      LEFT JOIN players p ON t.captain_id = p.player_id
-      LEFT JOIN owners o ON o.team_id = t.team_id
       WHERE t.team_id = ?
     `;
 
@@ -120,10 +96,8 @@ const createTeam = async (req, res, next) => {
       city,
       home_venue_id = null,
       coach = null,
-      captain_id = null,
       jersey_color = null,
-      founded_year = null,
-      titles_won = 0
+      founded_year = null
     } = req.body;
 
     if (!team_name || !short_name || !city) {
@@ -136,8 +110,8 @@ const createTeam = async (req, res, next) => {
     const insertQuery = `
       INSERT INTO teams (
         team_name, short_name, city, home_venue_id, coach, 
-        captain_id, jersey_color, founded_year, titles_won
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        jersey_color, founded_year
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     const [result] = await pool.query(insertQuery, [
@@ -146,10 +120,8 @@ const createTeam = async (req, res, next) => {
       city.trim(),
       home_venue_id || null,
       coach ? coach.trim() : null,
-      captain_id || null,
       jersey_color ? jersey_color.trim() : null,
-      founded_year || null,
-      titles_won || 0
+      founded_year || null
     ]);
 
     const [createdRows] = await pool.query('SELECT * FROM teams WHERE team_id = ?', [result.insertId]);
@@ -174,10 +146,8 @@ const updateTeam = async (req, res, next) => {
       city,
       home_venue_id,
       coach,
-      captain_id,
       jersey_color,
-      founded_year,
-      titles_won
+      founded_year
     } = req.body;
 
     // Check if team exists
@@ -198,10 +168,8 @@ const updateTeam = async (req, res, next) => {
         city = ?,
         home_venue_id = ?,
         coach = ?,
-        captain_id = ?,
         jersey_color = ?,
-        founded_year = ?,
-        titles_won = ?
+        founded_year = ?
       WHERE team_id = ?
     `;
 
@@ -211,10 +179,8 @@ const updateTeam = async (req, res, next) => {
       city !== undefined ? city.trim() : current.city,
       home_venue_id !== undefined ? home_venue_id : current.home_venue_id,
       coach !== undefined ? (coach ? coach.trim() : null) : current.coach,
-      captain_id !== undefined ? captain_id : current.captain_id,
       jersey_color !== undefined ? (jersey_color ? jersey_color.trim() : null) : current.jersey_color,
       founded_year !== undefined ? founded_year : current.founded_year,
-      titles_won !== undefined ? titles_won : current.titles_won,
       id
     ]);
 
@@ -268,7 +234,7 @@ const getTeamPlayers = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const [team] = await pool.query('SELECT team_id, team_name, captain_id FROM teams WHERE team_id = ?', [id]);
+    const [team] = await pool.query('SELECT team_id, team_name FROM teams WHERE team_id = ?', [id]);
     if (team.length === 0) {
       return res.status(404).json({
         success: false,
@@ -286,80 +252,18 @@ const getTeamPlayers = async (req, res, next) => {
         p.batting_style,
         p.bowling_style,
         p.jersey_no,
-        p.matches_played,
-        p.runs_scored,
-        p.wickets_taken,
-        p.base_price,
-        p.is_active,
-        CASE WHEN p.player_id = ? THEN 1 ELSE 0 END AS is_captain
+        p.is_active
       FROM players p
       WHERE p.team_id = ?
-      ORDER BY is_captain DESC, p.role ASC, p.player_name ASC
+      ORDER BY p.role ASC, p.player_name ASC
     `;
 
-    const [players] = await pool.query(query, [team[0].captain_id, id]);
+    const [players] = await pool.query(query, [id]);
 
     res.status(200).json({
       success: true,
       message: `Players for team '${team[0].team_name}' fetched successfully`,
       data: players
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// GET /api/teams/:id/matches - Get all matches played by a team
-const getTeamMatches = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const [team] = await pool.query('SELECT team_id, team_name FROM teams WHERE team_id = ?', [id]);
-    if (team.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: `Team with ID ${id} not found`
-      });
-    }
-
-    const query = `
-      SELECT 
-        m.match_id,
-        m.match_date,
-        m.match_time,
-        m.match_type,
-        m.status,
-        m.win_margin,
-        m.win_type,
-        s.season_year,
-        v.venue_name,
-        v.city AS venue_city,
-        t1.team_id AS team1_id,
-        t1.team_name AS team1_name,
-        t1.short_name AS team1_short,
-        t2.team_id AS team2_id,
-        t2.team_name AS team2_name,
-        t2.short_name AS team2_short,
-        w.team_name AS winner_name,
-        w.short_name AS winner_short,
-        pom.player_name AS player_of_match_name
-      FROM matches m
-      JOIN seasons s ON m.season_id = s.season_id
-      JOIN venues v ON m.venue_id = v.venue_id
-      JOIN teams t1 ON m.team1_id = t1.team_id
-      JOIN teams t2 ON m.team2_id = t2.team_id
-      LEFT JOIN teams w ON m.winner_id = w.team_id
-      LEFT JOIN players pom ON m.player_of_match = pom.player_id
-      WHERE m.team1_id = ? OR m.team2_id = ?
-      ORDER BY m.match_date DESC, m.match_id DESC
-    `;
-
-    const [matches] = await pool.query(query, [id, id]);
-
-    res.status(200).json({
-      success: true,
-      message: `Matches for team '${team[0].team_name}' fetched successfully`,
-      data: matches
     });
   } catch (error) {
     next(error);
@@ -372,6 +276,5 @@ module.exports = {
   createTeam,
   updateTeam,
   deleteTeam,
-  getTeamPlayers,
-  getTeamMatches
+  getTeamPlayers
 };

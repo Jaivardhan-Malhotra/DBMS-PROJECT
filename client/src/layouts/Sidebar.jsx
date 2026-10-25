@@ -2,52 +2,22 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Trophy,
-  LayoutDashboard,
   Shield,
   Users,
   Swords,
-  Calendar,
-  MapPin,
-  UserCheck,
-  DollarSign,
-  Award,
   Activity,
-  Briefcase,
-  BarChart3,
 } from 'lucide-react';
 
 const Sidebar = () => {
   const navSections = [
     {
-      title: 'Main',
-      items: [
-        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-      ],
-    },
-    {
-      title: 'Management',
+      title: 'IPL Modules',
       items: [
         { name: 'Teams', path: '/teams', icon: Shield },
         { name: 'Players', path: '/players', icon: Users },
         { name: 'Matches', path: '/matches', icon: Swords },
-        { name: 'Seasons', path: '/seasons', icon: Calendar },
-        { name: 'Venues', path: '/venues', icon: MapPin },
-      ],
-    },
-    {
-      title: 'More',
-      items: [
-        { name: 'Umpires', path: '/umpires', icon: UserCheck },
-        { name: 'Sponsors', path: '/sponsors', icon: DollarSign },
-        { name: 'Awards', path: '/awards', icon: Award },
-        { name: 'Innings', path: '/innings', icon: Activity },
-        { name: 'Owners', path: '/owners', icon: Briefcase },
-      ],
-    },
-    {
-      title: 'Analytics',
-      items: [
-        { name: 'Reports', path: '/reports', icon: BarChart3 },
+        { name: 'Player Statistics', path: '/player-statistics', icon: Activity },
+        { name: 'Team Statistics', path: '/team-statistics', icon: Trophy },
       ],
     },
   ];

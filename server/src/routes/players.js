@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, param } = require('express-validator');
 const playersController = require('../controllers/playersController');
-const { validate, paginate } = require('../middleware/validate');
+const { validate } = require('../middleware/validate');
 
 const router = express.Router();
 
@@ -38,10 +38,6 @@ const createPlayerValidation = [
     .optional({ nullable: true })
     .isInt({ min: 0, max: 99 })
     .withMessage('jersey_no must be between 0 and 99'),
-  body('base_price')
-    .optional({ nullable: true })
-    .isFloat({ min: 0 })
-    .withMessage('base_price must be a positive number'),
   body('is_active')
     .optional()
     .isBoolean()
@@ -80,10 +76,6 @@ const updatePlayerValidation = [
     .optional({ nullable: true })
     .isInt({ min: 0, max: 99 })
     .withMessage('jersey_no must be between 0 and 99'),
-  body('base_price')
-    .optional({ nullable: true })
-    .isFloat({ min: 0 })
-    .withMessage('base_price must be a positive number'),
   body('is_active')
     .optional()
     .isBoolean()
@@ -91,7 +83,7 @@ const updatePlayerValidation = [
 ];
 
 // Routes
-router.get('/', paginate, playersController.getAllPlayers);
+router.get('/', playersController.getAllPlayers);
 router.get('/:id', playersController.getPlayerById);
 router.post('/', createPlayerValidation, validate, playersController.createPlayer);
 router.put('/:id', updatePlayerValidation, validate, playersController.updatePlayer);

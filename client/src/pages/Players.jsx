@@ -5,9 +5,6 @@ import {
   Edit2,
   Trash2,
   Eye,
-  Award,
-  Activity,
-  DollarSign,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { playersAPI, teamsAPI } from '../services/api';
@@ -28,7 +25,6 @@ const initialPlayerForm = {
   bowling_style: '',
   team_id: '',
   jersey_no: '',
-  base_price: '',
   is_active: 1,
 };
 
@@ -49,8 +45,6 @@ const Players = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [playerStats, setPlayerStats] = useState(null);
-  const [loadingStats, setLoadingStats] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState(initialPlayerForm);
@@ -60,17 +54,12 @@ const Players = () => {
   const fetchPlayersAndTeams = useCallback(async () => {
     try {
       setLoading(true);
-      const [playersRes, teamsRes] = await Promise.allSettled([
+      const [playersRes, teamsRes] = await Promise.all([
         playersAPI.getAll(),
         teamsAPI.getAll(),
       ]);
-
-      if (playersRes.status === 'fulfilled' && playersRes.value?.data) {
-        setPlayers(playersRes.value.data.data || playersRes.value.data || []);
-      }
-      if (teamsRes.status === 'fulfilled' && teamsRes.value?.data) {
-        setTeams(teamsRes.value.data.data || teamsRes.value.data || []);
-      }
+      setPlayers(playersRes.data.data || []);
+      setTeams(teamsRes.data.data || []);
     } catch (error) {
       toast.error('Failed to load players roster');
     } finally {
@@ -103,25 +92,15 @@ const Players = () => {
       bowling_style: player.bowling_style || '',
       team_id: player.team_id || '',
       jersey_no: player.jersey_no ?? '',
-      base_price: player.base_price ?? '',
       is_active: player.is_active !== undefined ? Number(player.is_active) : 1,
     });
     setFormErrors({});
     setIsFormOpen(true);
   };
 
-  const handleOpenView = async (player) => {
+  const handleOpenView = (player) => {
     setSelectedPlayer(player);
     setIsViewOpen(true);
-    setLoadingStats(true);
-    try {
-      const res = await playersAPI.getStats(player.player_id);
-      setPlayerStats(res.data.data || res.data || null);
-    } catch (err) {
-      setPlayerStats(null);
-    } finally {
-      setLoadingStats(false);
-    }
   };
 
   const handleOpenDelete = (player) => {
@@ -151,7 +130,6 @@ const Players = () => {
         ...formData,
         team_id: formData.team_id ? Number(formData.team_id) : null,
         jersey_no: formData.jersey_no !== '' ? Number(formData.jersey_no) : null,
-        base_price: formData.base_price !== '' ? Number(formData.base_price) : null,
         dob: formData.dob || null,
         is_active: Number(formData.is_active),
       };
@@ -268,16 +246,6 @@ const Players = () => {
       ),
     },
     {
-      key: 'runs_scored',
-      label: 'Runs',
-      render: (val) => Number(val || 0).toLocaleString(),
-    },
-    {
-      key: 'wickets_taken',
-      label: 'Wickets',
-      render: (val) => Number(val || 0),
-    },
-    {
       key: 'is_active',
       label: 'Status',
       render: (val) => (
@@ -329,7 +297,7 @@ const Players = () => {
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Players Roster</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Comprehensive player registrations, squad assignments, auction pricing, and match careers.
+            Manage player details and team assignments.
           </p>
         </div>
         <button type="button" className="btn btn-primary" onClick={handleOpenAdd}>
@@ -474,16 +442,6 @@ const Players = () => {
                 onChange={(e) => setFormData({ ...formData, jersey_no: e.target.value })}
               />
             </FormField>
-            <FormField label="Base Price (₹ Cr / INR)">
-              <input
-                type="number"
-                step="0.01"
-                className="form-control"
-                placeholder="e.g. 20000000"
-                value={formData.base_price}
-                onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
-              />
-            </FormField>
           </div>
 
           <div className="form-row">
@@ -523,7 +481,7 @@ const Players = () => {
         </form>
       </Modal>
 
-      {/* View Player Modal with Stats */}
+      {/* View player details */}
       <Modal
         isOpen={isViewOpen}
         onClose={() => setIsViewOpen(false)}
@@ -571,25 +529,6 @@ const Players = () => {
               </div>
             </div>
 
-            <div className="grid-2">
-              <div className="card" style={{ padding: '1rem' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Career Runs
-                </span>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-primary)', marginTop: '2px' }}>
-                  {Number(selectedPlayer.runs_scored || playerStats?.runs_scored || 0).toLocaleString()}
-                </div>
-              </div>
-              <div className="card" style={{ padding: '1rem' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Career Wickets
-                </span>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-secondary)', marginTop: '2px' }}>
-                  {Number(selectedPlayer.wickets_taken || playerStats?.wickets_taken || 0)}
-                </div>
-              </div>
-            </div>
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Batting Style</span>
@@ -603,12 +542,6 @@ const Players = () => {
                 <span style={{ color: 'var(--text-muted)' }}>Franchise</span>
                 <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                   {selectedPlayer.team_name || teams.find((t) => t.team_id === selectedPlayer.team_id)?.team_name || 'Free Agent'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Base Price</span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                  {selectedPlayer.base_price ? `₹ ${Number(selectedPlayer.base_price).toLocaleString()}` : 'N/A'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
@@ -628,7 +561,7 @@ const Players = () => {
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeletePlayer}
         title="Delete Player Record"
-        message={`Are you sure you want to delete "${selectedPlayer?.player_name}"? This will remove all their career statistics and match associations.`}
+        message={`Are you sure you want to delete "${selectedPlayer?.player_name}"? This will also remove their match performance records.`}
         loading={submitting}
       />
     </div>

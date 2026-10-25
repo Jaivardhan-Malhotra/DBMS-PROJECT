@@ -3,19 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import LoadingSpinner from './components/LoadingSpinner';
 
-// Lazy-load all page components for better code-splitting performance
-const Dashboard = lazy(() => import('./pages/Dashboard'));
+// The application exposes only the five IPL management modules.
 const Teams     = lazy(() => import('./pages/Teams'));
 const Players   = lazy(() => import('./pages/Players'));
 const Matches   = lazy(() => import('./pages/Matches'));
-const Seasons   = lazy(() => import('./pages/Seasons'));
-const Venues    = lazy(() => import('./pages/Venues'));
-const Umpires   = lazy(() => import('./pages/Umpires'));
-const Sponsors  = lazy(() => import('./pages/Sponsors'));
-const Awards    = lazy(() => import('./pages/Awards'));
-const Innings   = lazy(() => import('./pages/Innings'));
-const Owners    = lazy(() => import('./pages/Owners'));
-const Reports   = lazy(() => import('./pages/Reports'));
+const PlayerStatistics = lazy(() => import('./pages/PlayerStatistics'));
+const TeamStatistics = lazy(() => import('./pages/TeamStatistics'));
 
 /**
  * Fallback shown while lazy-loaded page chunks are being fetched.
@@ -40,21 +33,14 @@ const App = () => {
       <Routes>
         {/* All authenticated / in-app routes share the MainLayout (sidebar + navbar) */}
         <Route element={<MainLayout />}>
-          <Route index            element={<Dashboard />} />
+          <Route index element={<Navigate to="/teams" replace />} />
           <Route path="teams"     element={<Teams />} />
           <Route path="players"   element={<Players />} />
           <Route path="matches"   element={<Matches />} />
-          <Route path="seasons"   element={<Seasons />} />
-          <Route path="venues"    element={<Venues />} />
-          <Route path="umpires"   element={<Umpires />} />
-          <Route path="sponsors"  element={<Sponsors />} />
-          <Route path="awards"    element={<Awards />} />
-          <Route path="innings"   element={<Innings />} />
-          <Route path="owners"    element={<Owners />} />
-          <Route path="reports"   element={<Reports />} />
+          <Route path="player-statistics" element={<PlayerStatistics />} />
+          <Route path="team-statistics" element={<TeamStatistics />} />
 
-          {/* Catch-all: redirect any unknown sub-path back to dashboard */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/teams" replace />} />
         </Route>
       </Routes>
     </Suspense>

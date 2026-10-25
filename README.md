@@ -6,17 +6,17 @@ A full-stack web application for managing IPL (Indian Premier League) data — b
 
 ---
 
-## 📋 Features
+## Features
 
-- **10 Entity Management Pages:** Teams, Players, Matches, Seasons, Venues, Umpires, Sponsors, Awards, Innings, Owners
-- **Dashboard** with live stats from MySQL (totals, recent matches, top teams)
-- **Reports** with JOIN/GROUP BY aggregate queries
-- **Full CRUD** on every entity with validation and referential integrity
-- **Search & Filter** on all major pages
-- **Many-to-Many** relationships (Player↔Match, Match↔Umpire, Team↔Sponsor, Player↔Award)
-- **Parameterized SQL** queries to prevent SQL injection
-- **Connection pooling** with mysql2
-- **REST API** with proper HTTP status codes and JSON responses
+The application exposes exactly these five IPL modules:
+
+1. **Teams** — add, view, update, and delete teams.
+2. **Players in Teams** — manage player details and team assignments.
+3. **Match Schedule** — manage participating teams, season, date, time, venue, and status. Seasons and venues are read-only lookups required by the existing database.
+4. **Player Statistics** — view matches, runs, wickets, batting average, and strike rate; manage per-match player records.
+5. **Team Statistics** — view played, won, lost, win percentage, titles, points, and season standings derived from match results.
+
+The existing MySQL schema and its primary/foreign-key relationships are reused; no new tables or database system are introduced.
 
 ---
 
@@ -62,7 +62,7 @@ ipl-management-system/
 │   ├── src/
 │   │   ├── components/        # Reusable UI components
 │   │   ├── layouts/           # Sidebar, Navbar, MainLayout
-│   │   ├── pages/             # Dashboard, Teams, Players, etc.
+│   │   ├── pages/             # The five IPL modules
 │   │   ├── services/          # Axios API service (api.js)
 │   │   └── index.css          # Global stylesheet
 │   ├── index.html
@@ -82,7 +82,6 @@ ipl-management-system/
 │   └── seed.sql               # Sample data (10 teams, 50 players, 21 matches...)
 ├── docs/
 │   ├── er-to-relational-mapping.md
-│   └── api-documentation.md
 └── README.md
 ```
 
@@ -108,7 +107,7 @@ mysql -u root -p < database\schema.sql
 mysql -u root -p < database\seed.sql
 ```
 
-This creates the `ipl_management` database with all tables and sample data.
+This creates the `ipl_management` database using the existing schema and sample data.
 
 ---
 
@@ -190,68 +189,31 @@ Open your browser: **http://localhost:5173**
 
 ---
 
-## 🌐 API Endpoints
+## API Endpoints
 
 Base URL: `http://localhost:5000/api`
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/dashboard/stats` | Dashboard summary stats |
 | GET/POST | `/teams` | List / Create teams |
 | GET/PUT/DELETE | `/teams/:id` | Get / Update / Delete team |
-| GET | `/teams/:id/players` | Players in a team |
-| GET | `/teams/:id/matches` | Matches played by team |
+| GET | `/teams/:id/players` | List players assigned to a team |
 | GET/POST | `/players` | List / Create players |
 | GET/PUT/DELETE | `/players/:id` | Get / Update / Delete player |
-| GET/POST | `/matches` | List / Create matches |
+| GET/POST | `/matches` | List / Schedule matches |
 | GET/PUT/DELETE | `/matches/:id` | Get / Update / Delete match |
-| GET | `/matches/:id/innings` | Innings for a match |
-| GET | `/matches/:id/umpires` | Umpires for a match |
-| GET/POST | `/seasons` | List / Create seasons |
-| GET/PUT/DELETE | `/seasons/:id` | Get / Update / Delete season |
-| GET | `/seasons/:id/matches` | Matches in a season |
-| GET/POST | `/venues` | List / Create venues |
-| GET/PUT/DELETE | `/venues/:id` | Get / Update / Delete venue |
-| GET/POST | `/umpires` | List / Create umpires |
-| GET/PUT/DELETE | `/umpires/:id` | Get / Update / Delete umpire |
-| GET/POST | `/sponsors` | List / Create sponsors |
-| GET/PUT/DELETE | `/sponsors/:id` | Get / Update / Delete sponsor |
-| POST | `/sponsors/:id/teams` | Add team association |
-| DELETE | `/sponsors/:id/teams/:teamId` | Remove team association |
-| GET/POST | `/awards` | List / Create awards |
-| GET/PUT/DELETE | `/awards/:id` | Get / Update / Delete award |
-| POST | `/awards/:id/players` | Assign award to player |
-| GET/POST | `/innings` | List / Create innings |
-| GET/PUT/DELETE | `/innings/:id` | Get / Update / Delete innings |
-| GET/POST | `/owners` | List / Create owners |
-| GET/PUT/DELETE | `/owners/:id` | Get / Update / Delete owner |
-| GET | `/reports/team-players` | Players per team |
-| GET | `/reports/team-wins` | Wins per team |
-| GET | `/reports/venue-matches` | Matches per venue |
-| GET | `/reports/top-batsmen` | Top 10 batsmen |
-| GET | `/reports/top-bowlers` | Top 10 bowlers |
-| GET | `/reports/season-summary` | Season-wise summary |
-| GET | `/reports/player-of-match` | PoM leaderboard |
+| GET | `/player-statistics` | Player totals and calculated rates |
+| GET/POST | `/player-statistics/records` | List / Add player match records |
+| PUT/DELETE | `/player-statistics/records/:id` | Update / Delete player match records |
+| GET | `/team-statistics` | Season-based team results and standings |
+| GET | `/seasons` | Read-only season lookup for scheduling and standings |
+| GET | `/venues` | Read-only venue lookup for scheduling |
 
 ---
 
 ## 🗄️ Database Schema Summary
 
-```
-venues ←── teams ──→ players ──→ player_match ──→ matches
-                ↑                                    │
-              owners                           match_umpires
-                                                     │
-sponsors ──→ team_sponsors                       umpires
-                                                     │
-awards ──→ player_awards                         innings
-                                                     │
-seasons ──────────────────────────────────────→ matches
-```
-
-**10 Tables:** venues, seasons, teams, players, matches, umpires, match_umpires, innings, player_match, sponsors, team_sponsors, awards, player_awards, owners
-
-**3 Views:** v_match_details, v_player_details, v_team_win_counts
+The existing schema contains `teams`, `players`, `matches`, `player_match`, `seasons`, and `venues`, plus legacy tables not exposed as application modules. The five modules reuse these existing tables; `player_match` stores player match figures and references its player, team, and match through foreign keys. The schedule reads match details through the existing `v_match_details` view.
 
 ---
 
@@ -284,7 +246,7 @@ net start MySQL80
 
 ---
 
-## 📊 Sample Data Included
+## Existing Sample Data
 
 | Entity | Count |
 |---|---|
@@ -293,25 +255,21 @@ net start MySQL80
 | Venues | 10 |
 | Seasons | 6 (2019–2024) |
 | Matches | 21 |
-| Umpires | 10 |
-| Sponsors | 10 |
-| Awards | 10 |
-| Innings | 12 |
-| Owners | 10 |
 
 ---
 
-## 📝 Academic Notes
+## SQL Concepts Used
 
-This project demonstrates:
-- **ER → Relational Mapping** (see `docs/er-to-relational-mapping.md`)
-- **1:1 relationship** — Owner owns exactly one Team
-- **1:M relationships** — Team has many Players; Season has many Matches
-- **M:N relationships** — Player↔Match (with stats), Match↔Umpire, Team↔Sponsor, Player↔Award
-- **Referential Integrity** — ON DELETE CASCADE/RESTRICT/SET NULL as appropriate
-- **SQL Injection Prevention** — All queries use `?` placeholders
-- **Normalization** — Schema is in 3NF
-- **SQL Features Used** — INSERT, SELECT, UPDATE, DELETE, INNER JOIN, LEFT JOIN, GROUP BY, COUNT, SUM, WHERE, HAVING, Views, Transactions
+The implementation uses concepts covered in the supplied SQL and Advanced SQL course materials:
+
+- Existing table data types, primary keys, foreign keys, and integrity constraints support the modules; the schema was not changed.
+- `INSERT`, `SELECT`, `UPDATE`, and `DELETE` for the five modules.
+- `WHERE`, comparison and logical operators, and joins for filtering and related records.
+- `COUNT`, `SUM`, `GROUP BY`, and subqueries for player and team statistics.
+- The existing view for match schedule details.
+- Existing date and time types support match scheduling.
+
+No schema changes, new tables, or SQL techniques outside those course topics were added.
 
 ---
 

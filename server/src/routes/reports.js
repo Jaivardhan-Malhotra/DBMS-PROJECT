@@ -1,14 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const ctrl = require('../controllers/reportsController');
+const controller = require('../controllers/teamStatisticsController');
 
-router.get('/team-players',     ctrl.getTeamPlayerCounts);
-router.get('/team-wins',        ctrl.getWinsPerTeam);
-router.get('/matches-per-team', ctrl.getMatchesPerTeam);
-router.get('/venue-matches',    ctrl.getVenueMatchCounts);
-router.get('/top-batsmen',      ctrl.getTopBatsmen);
-router.get('/top-bowlers',      ctrl.getTopBowlers);
-router.get('/season-summary',   ctrl.getSeasonSummary);
-router.get('/player-of-match',  ctrl.getPlayerOfMatchLeaderboard);
+router.get('/', controller.getTeamStatistics);
 
 module.exports = router;

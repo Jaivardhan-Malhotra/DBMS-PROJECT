@@ -5,7 +5,6 @@ import {
   Edit2,
   Trash2,
   Eye,
-  Trophy,
   MapPin,
   User,
   Users,
@@ -29,7 +28,6 @@ const initialForm = {
   coach: '',
   jersey_color: '#f97316',
   founded_year: 2008,
-  titles_won: 0,
 };
 
 const Teams = () => {
@@ -55,19 +53,14 @@ const Teams = () => {
   const fetchTeamsAndVenues = useCallback(async () => {
     try {
       setLoading(true);
-      const [teamsRes, venuesRes] = await Promise.allSettled([
+      const [teamsRes, venuesRes] = await Promise.all([
         teamsAPI.getAll(),
         venuesAPI.getAll(),
       ]);
-
-      if (teamsRes.status === 'fulfilled' && teamsRes.value?.data) {
-        setTeams(teamsRes.value.data.data || teamsRes.value.data || []);
-      }
-      if (venuesRes.status === 'fulfilled' && venuesRes.value?.data) {
-        setVenues(venuesRes.value.data.data || venuesRes.value.data || []);
-      }
+      setTeams(teamsRes.data.data || []);
+      setVenues(venuesRes.data.data || []);
     } catch (error) {
-      toast.error('Failed to load teams data');
+      toast.error(error.message || 'Failed to load teams data');
     } finally {
       setLoading(false);
     }
@@ -97,7 +90,6 @@ const Teams = () => {
       coach: team.coach || '',
       jersey_color: team.jersey_color || '#f97316',
       founded_year: team.founded_year || 2008,
-      titles_won: team.titles_won || 0,
     });
     setFormErrors({});
     setIsFormOpen(true);
@@ -111,7 +103,7 @@ const Teams = () => {
       const res = await teamsAPI.getPlayers(team.team_id);
       setTeamPlayers(res.data.data || res.data || []);
     } catch (err) {
-      setTeamPlayers([]);
+      toast.error(err.message || 'Failed to load team players');
     } finally {
       setLoadingPlayers(false);
     }
@@ -145,7 +137,6 @@ const Teams = () => {
         ...formData,
         home_venue_id: formData.home_venue_id ? Number(formData.home_venue_id) : null,
         founded_year: formData.founded_year ? Number(formData.founded_year) : null,
-        titles_won: Number(formData.titles_won || 0),
       };
 
       if (selectedTeam) {
@@ -267,9 +258,6 @@ const Teams = () => {
                   >
                     {team.short_name}
                   </span>
-                  {Number(team.titles_won) > 0 && (
-                    <Badge variant="warning" label={`🏆 ${team.titles_won} ${team.titles_won === 1 ? 'Title' : 'Titles'}`} />
-                  )}
                 </div>
 
                 {/* Body Content */}
@@ -301,12 +289,6 @@ const Teams = () => {
                       <span>Founded: {team.founded_year || 'N/A'}</span>
                     </div>
 
-                    {team.captain_name && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-primary)' }}>
-                        <Trophy size={15} />
-                        <span>Captain: {team.captain_name}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Actions */}
@@ -446,16 +428,6 @@ const Teams = () => {
                 />
               </div>
             </FormField>
-            <FormField label="Championship Titles Won">
-              <input
-                type="number"
-                min="0"
-                className="form-control"
-                placeholder="0"
-                value={formData.titles_won}
-                onChange={(e) => setFormData({ ...formData, titles_won: e.target.value })}
-              />
-            </FormField>
           </div>
 
           <div className="modal-footer" style={{ padding: '1rem 0 0', marginTop: '1rem' }}>
@@ -519,9 +491,6 @@ const Teams = () => {
                   <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                     <User size={13} /> Coach: {selectedTeam.coach || 'N/A'}
                   </span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Trophy size={13} /> Titles: {selectedTeam.titles_won || 0}
-                  </span>
                 </div>
               </div>
             </div>
@@ -547,8 +516,6 @@ const Teams = () => {
                         <th>Player Name</th>
                         <th>Role</th>
                         <th>Nationality</th>
-                        <th>Runs</th>
-                        <th>Wickets</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -561,8 +528,6 @@ const Teams = () => {
                             <Badge variant="purple" label={player.role} />
                           </td>
                           <td>{player.nationality}</td>
-                          <td>{player.runs_scored ?? 0}</td>
-                          <td>{player.wickets_taken ?? 0}</td>
                           <td>
                             <Badge
                               variant={player.is_active ? 'success' : 'danger'}
